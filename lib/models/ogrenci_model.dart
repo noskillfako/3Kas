@@ -66,7 +66,7 @@ Future<void>ogrenciIdleKaydet({
 Future<List<OgrenciModel>> tumOgrencileriGetir() async{
   try{
     final QuerySnapshot snaphot=await _ogrencilerKoleksiyonu.orderBy('notu',descending:true).get();
-    return snapshot.docs.map((doc)=>OgrenciModel.fromFireStore(doc)).toList();
+    return snaphot.docs.map((doc)=>OgrenciModel.fromFireStore(doc)).toList();
   }catch(e){
     print("Veri çekme hatasi:$e");
     return [];

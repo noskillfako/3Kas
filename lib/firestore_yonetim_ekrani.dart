@@ -50,9 +50,16 @@ Widget build(BuildContext context){
               ),
               const SizedBox(height:8),
               //proje bölümü ekle
-              SizedBox(
-                width: 90,
-                child:TextField(
+              TextField(
+                controller: _projeKontrolcusu,
+                decoration: const InputDecoration(
+                  labelText: "Proje Adı",
+                  prefixIcon: Icon(Icons.work),
+                ),
+
+              ),
+              const SizedBox(height: 8),
+                TextField(
                   controller: _notKontrolcusu,
                   keyboardType: TextInputType.number,
                   decoration: const InputDecoration(
@@ -60,97 +67,96 @@ Widget build(BuildContext context){
                     prefixIcon: Icon(Icons.grade),
                   ),
                 ),
+              const SizedBox(height: 8),
+              ElevatedButton.icon(
+                style:ElevatedButton.styleFrom(
+                  backgroundColor:Colors.pink,
+                  foregroundColor:Colors.brown,
+                  minimumSize:const Size.fromHeight(44),
+                ),
+                onPressed: _yeniOgrenciKaydet,
+                icon: const Icon(Icons.cloud_upload),
+                label: const Text("Buluta Kaydet"),
               ),
             ],
           ),
-          const SizedBox(height: 12,),
-          ElevatedButton.icon(
-            style:ElevatedButton.styleForm(
-              backgroundColor:Colors.pink,
-              foregroundColor:Colors.brown,
-              minimumSize:const Size.fromHeight(44),
+        ),
+        ),
+        const Divider(thickness: 2),
+        Expanded(
+          child:StreamBuilder<QuerySnapshot>(
+            stream:FirebaseFirestore.instance.collection('ogrenciler')
+            .orderBy('notu',descending: true)
+            .snapshots(),
+            builder:(BuildContext context,AsyncSnapshot<QuerySnapshot> snapshot){
+            if(snapshot.hasError){
+              return Center(child: Text("Bulut hatası:${snapshot.error}"));
+            }
+            if(snapshot.connectionState==ConnectionState.waiting){
+              return const Center(child: CircularProgressIndicator());
+            }
+            if(!snapshot.hasData || snapshot.data!.docs.isEmpty){
+              return const Center(child: Text("Henüz bulutta kayıtlı öğrenci yoktur"),
+              );
+            }
+            final List<DocumentSnapshot> dokumanlar=snapshot.data!.docs;
+            return ListView.builder(
+              itemCount:dokumanlar.length,
+              itemBuilder: (context,index){
+                final doc=dokumanlar[index];
+                final ogrenci=OgrenciModel.fromFireStore(doc);
+                return Dismissible(
+                  key: Key(ogrenci.id),
+                  direction:DismissDirection.endToStart,
+                  background:Container(
+                    alignment:Alignment.centerRight,
+                    padding:const EdgeInsets.only(right:20),
+                    color:Colors.red,
+                    child:const Icon(Icons.delete_forever,color:Colors.white),
+                  ),
+                  onDismissed: (direction){
+                    _servis.ogrenciSilme(ogrenci.id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content:Text('${ogrenci.adSoyad} buluttan silindi')),
+                    );
+                  },
+                  child:ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor:ogrenci.notu>=80 ? Colors.green :(ogrenci.notu>=50 ? Colors.orange:Colors.red),
+                      child:Text(
+                        '${ogrenci.notu}',
+                        style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold),
+                      ),
+                    ),
+                    title: Text(
+                      ogrenci.adSoyad,
+                      style:const TextStyle(fontWeight:FontWeight.bold),
+                    ),
+                    subtitle:Text('Proje:${ogrenci.projeAdi}'),
+                    trailing: IconButton(
+                      onPressed: ()=>_notguncelleDialog(ogrenci),
+                      icon: const Icon(
+                        Icons.edit,
+                        color:Colors.amberAccent,
+                      ),
+                      ),
+                  ),
+                );
+                },
+              );
+              },
             ),
-            onPressed: _yeniOgrenciKaydet,
-            icon: const Icon(Icons.cloud_upload),
-            label: const Text("Buluta Kaydet"),
           ),
-        ),
-        ),
       ],
     ),
-    const Divider(thickness: 2),
-    Expanded(
-      child:StreamBuilder<QuerySnapshot>(
-        stream:FirebaseFirestore.instance.collection('ogrenciler')
-        .orderBy('notu',descending: true)
-        .snapshots(),
-        builder:(BuildContext context,AsyncSnapshot<QuerySnapShot> snapshot){
-        if(snapshot.hasError){
-          return Center(child: Text("Bulut hatası:${snapshot.error}"));
-        }
-        if(snapshot.connectionState==ConnectionState.waiting){
-          return const Center(child: CircularProgressIndicator());
-        }
-        if(snapshot.hasData || snapshot.data!.docs.isEmpty){
-          return const Center(child: Text("Henüz bulutta kayıtlı öğrenci yoktur"),
-          );
-        }
-        final List<DocumentSnapshot> dokumanlar=snapshot.data!.docs;
-        return ListView.builder(
-          itemCount:dokumanlar.length,
-          itemBuilder: (context,index){
-            final doc=dokumanlar[index];
-            final ogrenci=OgrenciModel.fromFireStore(doc);
-            return Dismissible(
-              key: Key(ogrenci.id),
-              direction:DismissDirection.endToStart,
-              background:Container(
-                alignment:Alignment.centerRight,
-                padding:const EdgeInsets.only(right:20),
-                color:Colors.red,
-                child:const Icon(Icons.delete_forever,color:Colors.white),
-              ),
-              onDismissed: (direction){
-                _servis.ogrenciSilme(ogrenci.id);
-                ScaffoldMessenger.of(context).showSnackbar(
-                  SnackBar(context:Text('${ogrenci.adSoyad} buluttan silindi')),
-                );
-              },
-              child:ListTile(
-                leading: CircleAvatar(
-                  backgroundColor:ogrenci.notu>=80 ? Colors.green :(ogrenci.notu>=50 ? Colors.orange:Colors.red),
-                  child:Text(
-                    '${ogrenci.notu}',
-                    style:const TextStyle(color:Colors.white,fontWeight:FontWeight.bold),
-                  ),
-                ),
-                title: Text(
-                  ogrenci.adSoyad,
-                  style:const TextStyle(fontWeight:FontWeight.bold),
-                ),
-                subtitle:Text('Proje:${ogrenci.projeAdi}'),
-                trailing: IconButton(
-                  onPressed: ()=>_notguncelleDialog(ogrenci),
-                  icon: const Icon(
-                    Icons.edit,
-                    color:Colors.amberAccent,
-                  ),
-                  ),
-              ),
-            );
-            },
-          );
-          },
-        ),
-      ),
     );
   }
   void _yeniOgrenciKaydet(){
-    final adSoyad = _adSoyadKontrolcusu.text.trim();
+    final adSoyad = _adsoyadKontrolcusu.text.trim();
     final proje= _projeKontrolcusu.text.trim();
     final not=int.tryParse(_notKontrolcusu.text.trim()) ?? 0;
 
-    if(adSoyad.isEmpity || proje.isEmpty){
+    if(adSoyad.isEmpty || proje.isEmpty){
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Lütfen ad soyad ve proje adını giriniz')),
       );
@@ -161,6 +167,57 @@ Widget build(BuildContext context){
     _projeKontrolcusu.clear();
     _notKontrolcusu.clear();
   }
+
+  Future<void> _notguncelleDialog(OgrenciModel ogrenci) async {
+  final controller = TextEditingController(text: ogrenci.notu.toString());
+
+  await showDialog(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      title: Text(ogrenci.adSoyad),
+      content: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: const InputDecoration(labelText: 'Yeni Not'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(dialogContext),
+          child: const Text('İptal'),
+        ),
+        ElevatedButton(
+          onPressed: () async {
+            final yeniNot = int.tryParse(controller.text.trim());
+            if (yeniNot == null || yeniNot < 0 || yeniNot > 100) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Geçerli bir not girin (0-100)')),
+              );
+              return;
+            }
+            try {
+              await _servis.ogrenciNotuGuncelle(ogrenci.id, yeniNot);
+              if (dialogContext.mounted) Navigator.pop(dialogContext);
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${ogrenci.adSoyad} güncellendi')),
+                );
+              }
+            } catch (e) {
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Hata: $e')),
+                );
+              }
+            }
+          },
+          child: const Text('Kaydet'),
+        ),
+      ],
+    ),
+  );
+
+  controller.dispose();
+}
 }
 
 /*Yapılacaklar
